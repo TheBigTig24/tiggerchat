@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { api } from "~/trpc/react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCog, faSignOut } from '@fortawesome/free-solid-svg-icons';
 
 type Message = {
     id: string;
@@ -76,6 +78,20 @@ export default function RoomPage() {
 
     return (
         <main className="flex h-screen flex-col bg-gray-900">
+            {/* Header */}
+            <div className="flex flex-row items-center justify-between bg-gray-700 p-4">
+                <button 
+                    className="rounded-full border-gray-700 bg-gray-400 cursor-pointer hover:bg-white/20 flex items-center justify-center"
+                >
+                    <FontAwesomeIcon icon={faSignOut} className="m-2"></FontAwesomeIcon>
+                </button>
+                <h1 className="text-white font-bold text-3xl">Room Code: {roomId}</h1>
+                <button 
+                    className="rounded-full border-gray-700 bg-gray-400 cursor-pointer hover:bg-white/20 flex items-center justify-center"
+                >
+                    <FontAwesomeIcon icon={faCog} className="m-2"></FontAwesomeIcon>
+                </button>
+            </div>
             {/* Messages List Area */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.map((m) => {

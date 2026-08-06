@@ -81,13 +81,13 @@ export default function Home() {
           <div className="container flex flex-col items-center justify-center gap-6 px-4 py-4">
             <button
               onClick={createRoom}
-              className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20"
+              className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20 cursor-pointer"
             >
               Create Chat Room
             </button>
             <button
               onClick={() => setIsJoinScreen(true)}
-              className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20"
+              className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20 cursor-pointer"
             >
               Join Chat Room
             </button>
