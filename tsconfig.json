@@ -9,7 +9,6 @@
     "moduleDetection": "force",
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "types": ["node", "jest"],
 
     /* Strictness */
     "strict": true,

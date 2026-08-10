@@ -1,10 +1,11 @@
 import { EventEmitter } from "events";
 import { roomRouter } from "~/server/api/routers/room";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import crypto, { randomUUID } from "crypto";
 
 // mocking crypto to have predictable uuids in tests
-jest.mock('crypto', () => ({
-    randomUUID: jest.fn(() => 'test-uuid-1234'),
+vi.mock('crypto', () => ({
+    randomUUID: vi.fn(() => 'test-uuid-1234'),
 }));
 
 describe('Room Routes', () => {
@@ -19,11 +20,11 @@ describe('Room Routes', () => {
         // mock prisma db methods
         mockDb = {
             participant: {
-                create: jest.fn().mockResolvedValue({}),
-                delete: jest.fn().mockResolvedValue({}),
+                create: vi.fn().mockResolvedValue({}),
+                delete: vi.fn().mockResolvedValue({}),
             },
             message: {
-                create: jest.fn().mockResolvedValue({}),
+                create: vi.fn().mockResolvedValue({}),
             },
         };
 
@@ -38,7 +39,7 @@ describe('Room Routes', () => {
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should handle user joining, receiving messages, and disconnecting', async () => {
@@ -46,5 +47,50 @@ describe('Room Routes', () => {
         const input = { roomId: 'abcd', name: 'ChesterTester' };
         
         // init trpc server caller with mocked context
-    })
+        const caller = roomRouter.createCaller(mockCtx);
+
+        // call procedure, passing abort signal
+        const iterable = await caller.onSendMessage(input);
+
+        // convert to async iterator to call .next()
+        const iterator = iterable as AsyncGenerator<any>;
+
+        // verify join phase
+        const joinResult = await iterator.next();
+
+        expect(joinResult.value).toMatchObject({
+            sender: 'SYSTEM',
+            message: 'ChesterTester has joined the chat.',
+            roomId: 'abcd',
+        });
+        expect(mockDb.participant.create).toHaveBeenCalledWith({
+            data: { name: 'ChesterTester', roomId: 'abcd' },
+        });
+
+        // verify message listening phase
+        const chatMsg = {
+            id: 'msg-1',
+            roomId: 'abcd',
+            message: 'Hello World!',
+            createdAt: new Date(),
+            sender: 'user-123',
+        };
+
+        mockCtx.ee.emit('SEND_MESSAGE', chatMsg);
+
+        const chatResult = await iterator.next();
+        expect(chatResult.value).toEqual(chatMsg);
+
+        // verify dc/cleanup (finally)
+        await iterator.return(undefined);
+
+        expect(mockDb.message.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    message: 'ChesterTester has left the chat.',
+                    sender: 'SYSTEM',
+                }),
+            })
+        );
+    });
 })
