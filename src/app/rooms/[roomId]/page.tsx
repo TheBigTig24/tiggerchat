@@ -6,16 +6,7 @@ import { useParams } from "next/navigation";
 import { api } from "~/trpc/react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog, faSignOut } from '@fortawesome/free-solid-svg-icons';
-
-type Message = {
-    id: string;
-    message: string;
-    roomId: string;
-    sentAt: Date;
-    sender: {
-        name: string;
-    };
-};
+import type { Message } from "@prisma/client";
 
 export default function RoomPage() {
     // get roomId from URL using app router hook
@@ -33,8 +24,12 @@ export default function RoomPage() {
 
     // setup tRPC subscription (recv msg)
     api.room.onSendMessage.useSubscription(
-        { roomId },
+        { 
+            roomId,
+            name: session?.user?.name as string
+        },
         {
+            enabled: status === 'authenticated',
             onData(newMsg) {
                 setMessages((prev) => [...prev, newMsg]);
             },
@@ -95,24 +90,37 @@ export default function RoomPage() {
             {/* Messages List Area */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.map((m) => {
-                    // check if this user sent the emssage to align it
-                    const isMe = m.sender.name === session.user?.name;
-
-                    return(
-                        <div
-                            key={m.id}
-                            className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                        >
-                            <span className="text-xs text-gray-400 mb-1">
-                                {m.sender.name} - {m.sentAt.toLocaleTimeString()}
-                            </span>
+                    if (m.sender === 'SYSTEM') {
+                        return (
                             <div
-                                className={`rounded-md px-4 py-2 text-white w-7/12 ${isMe ? "bg-blue-600 border border-blue-600" : "bg-gray-700 border border-gray-600"}`}
+                                key={m.id}
+                                className="flex flex-col items-center"
                             >
-                                {m.message}
+                                <span className="text-xs text-white mb-1">
+                                    {m.message} - {m.createdAt.toLocaleTimeString()}
+                                </span>
                             </div>
-                        </div>
-                    );
+                        )
+                    } else {
+                        // check if this user sent the emssage to align it
+                        const isMe = m.sender === session.user?.name;
+
+                        return(
+                            <div
+                                key={m.id}
+                                className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                            >
+                                <span className="text-xs text-gray-400 mb-1">
+                                    {m.sender} - {m.createdAt.toLocaleTimeString()}
+                                </span>
+                                <div
+                                    className={`rounded-md px-4 py-2 text-white max-w-7/12 flex-wrap ${isMe ? "bg-blue-600 border border-blue-600" : "bg-gray-700 border border-gray-600"}`}
+                                >
+                                    {m.message}
+                                </div>
+                            </div>
+                        );
+                    }
                 })}
             </div>
 
