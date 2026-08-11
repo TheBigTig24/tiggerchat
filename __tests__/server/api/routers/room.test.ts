@@ -3,6 +3,20 @@ import { roomRouter } from "~/server/api/routers/room";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import crypto, { randomUUID } from "crypto";
 
+vi.mock('next-auth', () => ({
+    default: vi.fn(() => ({
+        auth: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
+        handlers: vi.fn(),
+    })),
+}));
+
+vi.mock('next/server', () => ({
+    NextResponse: vi.fn(),
+    NextRequest: vi.fn(),
+}));
+
 // mocking crypto to have predictable uuids in tests
 vi.mock('crypto', () => ({
     randomUUID: vi.fn(() => 'test-uuid-1234'),
