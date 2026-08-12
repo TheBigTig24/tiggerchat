@@ -18,9 +18,17 @@ vi.mock('next/server', () => ({
 }));
 
 // mocking crypto to have predictable uuids in tests
-vi.mock('crypto', () => ({
-    randomUUID: vi.fn(() => 'test-uuid-1234'),
-}));
+vi.mock('crypto', async (importOriginal) => {
+    const actual = await importOriginal<typeof import("crypto")>();
+    return {
+        ...actual,
+        default: {
+            ...actual,
+            randomUUID: () => "mocked-id-1234",
+        },
+        randomUUID: () => "mocked-id-1234",
+    };
+});
 
 describe('Room Routes', () => {
     let mockDb: any;
@@ -57,7 +65,6 @@ describe('Room Routes', () => {
     });
 
     it('should handle user joining, receiving messages, and disconnecting', async () => {
-        const ac = new AbortController();
         const input = { roomId: 'abcd', name: 'ChesterTester' };
         
         // init trpc server caller with mocked context
@@ -90,9 +97,13 @@ describe('Room Routes', () => {
             sender: 'user-123',
         };
 
+        const chatResPromise = iterator.next();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
         mockCtx.ee.emit('SEND_MESSAGE', chatMsg);
 
-        const chatResult = await iterator.next();
+        const chatResult = await chatResPromise;
         expect(chatResult.value).toEqual(chatMsg);
 
         // verify dc/cleanup (finally)
@@ -107,4 +118,4 @@ describe('Room Routes', () => {
             })
         );
     });
-})
+});
