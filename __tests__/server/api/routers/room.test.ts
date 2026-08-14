@@ -39,6 +39,8 @@ describe('Room Routes', () => {
         // setup a real event emitter so we can emit events in the test
         ee = new EventEmitter();
 
+        vi.spyOn(ee, 'emit');
+
         // mock prisma db methods
         mockDb = {
             participant: {
@@ -117,5 +119,40 @@ describe('Room Routes', () => {
                 }),
             })
         );
+    });
+
+    it('should handle sending messages', async () => {
+        const input = {
+            roomId: 'abcd',
+            message: 'sup boss',
+            name: 'ChesterTester',
+        };
+
+        const caller = roomRouter.createCaller(mockCtx);
+
+        const result = await caller.sendMessage(input);
+
+        // test expected return object
+        expect(result.roomId).toBe(input.roomId);
+        expect(result.message).toBe(input.message);
+        expect(result.sender).toBe(input.name);
+
+        // check that other params were generated
+        expect(result.id).toBeDefined();
+        expect(result.createdAt).toBeInstanceOf(Date);
+        
+        // verify that the message was broadcasted
+        expect(mockCtx.ee.emit).toHaveBeenCalledWith("SEND_MESSAGE", result);
+
+        // verify db was called to save payload
+        expect(mockCtx.db.message.create).toHaveBeenCalledWith({
+            data: {
+                id: result.id,
+                createdAt: result.createdAt,
+                roomId: result.roomId,
+                sender: result.sender,
+                message: result.message,
+            }
+        });
     });
 });
