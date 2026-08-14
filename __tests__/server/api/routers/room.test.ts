@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { roomRouter } from "~/server/api/routers/room";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import crypto, { randomUUID } from "crypto";
+import { Result } from "postcss";
 
 vi.mock('next-auth', () => ({
     default: vi.fn(() => ({
@@ -50,6 +51,9 @@ describe('Room Routes', () => {
             message: {
                 create: vi.fn().mockResolvedValue({}),
             },
+            room: {
+                findUnique: vi.fn().mockResolvedValue({}),
+            }
         };
 
         // construct the mocked context
@@ -154,5 +158,41 @@ describe('Room Routes', () => {
                 message: result.message,
             }
         });
+    });
+
+    it('should check if a room exists', async () => {
+        const input = {
+            id: 'abcd',
+        };
+
+        const caller = roomRouter.createCaller(mockCtx);
+
+        const result = await caller.checkRoomExists(input);
+
+        expect(result.exists).toBe(true);
+        expect(mockCtx.db.room.findUnique).toHaveBeenCalledWith({
+            where: { id: input.id },
+            select: { id: true }
+        });
+    });
+
+    it(' should check if a room does not exist', async () => {
+        mockCtx.db.room.findUnique.mockResolvedValue(null);
+
+        const input = { id: 'abcd' };
+
+        const caller = roomRouter.createCaller(mockCtx);
+
+        const result = await caller.checkRoomExists(input);
+
+        expect(result.exists).toBe(false);
+        expect(mockCtx.db.room.findUnique).toHaveBeenCalledWith({
+            where: { id: input.id },
+            select: { id: true },
+        });
+    });
+
+    it('should delete a participant from a room', async () => {
+        
     });
 });
