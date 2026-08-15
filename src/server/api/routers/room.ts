@@ -42,13 +42,16 @@ export const roomRouter = createTRPCRouter({
         })
     )
     .subscription(async function* ({ ctx, input, signal }) {
+        let participantId: string | undefined;
         try {
-            await ctx.db.participant.create({
+            const newParticipant = await ctx.db.participant.create({
                 data: {
                     name: input.name ?? 'Anon',
                     roomId: input.roomId,
                 }
             });
+
+            participantId = newParticipant.id;
 
             const sysJoinMsg: Message = {
                 id: crypto.randomUUID(),
@@ -91,7 +94,7 @@ export const roomRouter = createTRPCRouter({
             ctx.ee.emit("SEND_MESSAGE", sysDcMsg);
 
             await ctx.db.participant.delete({
-                where: { roomId: input.roomId, id: ctx.session.user.id}
+                where: { roomId: input.roomId, id: participantId }
             })
         }
     }),
@@ -176,11 +179,23 @@ export const roomRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             // delete participant from room
-            // await ctx.db.room.
+            const participantToDelete = await ctx.db.participant.delete({
+                where: {
+                    roomId: input.roomId,
+                    id: input.userId
+                },
+                select: {
+                    id: true,
+                }
+            })
 
             ctx.ee.emit(`room-${input.roomId}`, {
                 type: 'SYSTEM',
                 message: `User ${input.userId} has left the chat.`,
             });
+            
+            return {
+                deletedId: participantToDelete.id,
+            };
     }),
 });

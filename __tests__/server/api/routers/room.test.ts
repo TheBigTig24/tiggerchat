@@ -191,8 +191,4 @@ describe('Room Routes', () => {
             select: { id: true },
         });
     });
-
-    it('should delete a participant from a room', async () => {
-        
-    });
 });
